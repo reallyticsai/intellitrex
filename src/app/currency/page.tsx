@@ -153,8 +153,7 @@ export default function CurrencyPage() {
       );
       const data = await res.json();
       if (data.candles) {
-        const sliced = data.candles.slice(-timeRange.limit);
-        setCandles(sliced);
+        setCandles(data.candles);
       }
     } catch (e) {
       console.error("Failed to fetch prices", e);
