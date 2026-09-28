@@ -59,7 +59,9 @@ signals, not financial advice."
       chart.
 - [ ] The Bollinger panel shows real numbers, not N/A.
 - [ ] The currency page makes no request to /api/forecasts or GitHub.
-- [ ] `npm run lint` and `npm run build` pass.
+- [ ] `npm run build` passes, and `npx eslint` reports no errors in the
+      files you changed. The repo has 5 pre-existing lint errors in other
+      files: do not fix or suppress them, and do not edit unrelated files.
 
 ## Data
 Signals need at least 90 daily closes. `/api/prices` must be able to return
@@ -76,4 +78,4 @@ advisor.
 3. Add daily-resolution support to `/api/prices`.
 4. Draw the signals and the summary card on /currency, and stop using the
    forecast CSVs.
-5. Run lint, build and tests, then show the final diff.
+5. Run tests, build and eslint on the changed files, then show the final diff.
