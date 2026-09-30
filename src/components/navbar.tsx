@@ -2,150 +2,75 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sun, Moon, User, Crown, LogOut, Settings } from "lucide-react";
-import { useTheme } from "./theme-provider";
+import { BarChart3, ChevronDown, Crown, LayoutDashboard, LogOut, Search, Settings, Sparkles, TrendingUp, User } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const NAV_LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/currency", label: "Currency" },
-  { href: "/consultancy", label: "Consultancy" },
+  { href: "/", label: "Overview", icon: LayoutDashboard },
+  { href: "/currency", label: "Markets", icon: BarChart3 },
+  { href: "/consultancy", label: "AI advisor", icon: Sparkles },
 ];
 
 export function Navbar() {
   const pathname = usePathname();
-  const { theme, toggle } = useTheme();
   const { user, isLoggedIn, isPremium, isAdmin, signOut } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setDropdownOpen(false);
-      }
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) setDropdownOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
-    <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">*</span>
-          </div>
-          <span className="font-semibold text-lg text-foreground">Intellitrex</span>
+    <header className="terminal-nav-shell">
+      <nav className="terminal-nav" aria-label="Primary navigation">
+        <Link href="/" className="terminal-brand" aria-label="Intellitrex overview">
+          <span className="brand-mark"><TrendingUp className="h-4 w-4" /></span>
+          <span className="brand-wordmark">INTELLITREX</span>
+          <span className="brand-divider" />
+          <span className="brand-product">MARKET DESK</span>
         </Link>
 
-        <div className="flex items-center gap-8">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                "text-sm font-medium transition-colors",
-                pathname === link.href
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
+        <div className="terminal-nav-links">
+          {NAV_LINKS.map((link) => {
+            const Icon = link.icon;
+            const active = pathname === link.href;
+            return (
+              <Link key={link.href} href={link.href} className={cn("terminal-nav-link", active && "active")}>
+                <Icon className="h-3.5 w-3.5" /> {link.label}
+              </Link>
+            );
+          })}
         </div>
 
-        <div className="flex items-center gap-3">
-          {isPremium && (
-            <span className="flex items-center gap-1 px-2.5 py-1 bg-yellow-500/10 text-yellow-600 rounded-full text-xs font-medium">
-              <Crown className="w-3 h-3" /> Premium
-            </span>
-          )}
-          <button
-            onClick={toggle}
-            className="p-2 rounded-full hover:bg-muted transition-colors"
-            aria-label="Toggle theme"
-          >
-            {theme === "light" ? (
-              <Moon className="w-5 h-5 text-muted-foreground" />
-            ) : (
-              <Sun className="w-5 h-5 text-muted-foreground" />
-            )}
-          </button>
-
-          {/* Profile button with dropdown */}
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-1.5 p-1.5 rounded-full border border-border hover:bg-muted transition-colors"
-            >
-              {isLoggedIn && user?.avatar ? (
-                <img src={user.avatar} alt={user.name} className="w-6 h-6 rounded-full" />
-              ) : (
-                <User className="w-5 h-5 text-muted-foreground mx-0.5" />
-              )}
+        <div className="terminal-nav-actions">
+          <Link href="/currency" className="nav-search-link"><Search className="h-3.5 w-3.5" /><span>Search markets</span><kbd>/</kbd></Link>
+          {isPremium && <span className="premium-chip"><Crown className="h-3 w-3" /> Premium</span>}
+          <div className="profile-menu" ref={dropdownRef}>
+            <button className="profile-trigger" onClick={() => setDropdownOpen((open) => !open)} aria-expanded={dropdownOpen} aria-label="Open account menu">
+              {isLoggedIn && user?.name ? <span className="profile-initial">{user.name.slice(0, 1).toUpperCase()}</span> : <User className="h-4 w-4" />}
+              <ChevronDown className="h-3 w-3" />
             </button>
-
-            {dropdownOpen && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-card border border-border rounded-xl shadow-lg overflow-hidden z-50">
-                {isLoggedIn ? (
-                  <>
-                    <div className="px-4 py-3 border-b border-border">
-                      <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-                    </div>
-                    <Link
-                      href="/profile"
-                      onClick={() => setDropdownOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
-                    >
-                      <User className="w-4 h-4" /> Profile
-                    </Link>
-                    {isAdmin && (
-                      <Link
-                        href="/admin"
-                        onClick={() => setDropdownOpen(false)}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
-                      >
-                        <Settings className="w-4 h-4" /> Admin Panel
-                      </Link>
-                    )}
-                    <button
-                      onClick={() => {
-                        signOut();
-                        setDropdownOpen(false);
-                      }}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-danger hover:bg-danger/10 transition-colors"
-                    >
-                      <LogOut className="w-4 h-4" /> Sign Out
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Link
-                      href="/profile"
-                      onClick={() => setDropdownOpen(false)}
-                      className="flex items-center gap-2 px-4 py-3 text-sm text-foreground hover:bg-muted transition-colors"
-                    >
-                      <User className="w-4 h-4" /> Sign In
-                    </Link>
-                    <Link
-                      href="/admin"
-                      onClick={() => setDropdownOpen(false)}
-                      className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground hover:bg-muted transition-colors"
-                    >
-                      <Settings className="w-4 h-4" /> Admin
-                    </Link>
-                  </>
-                )}
-              </div>
-            )}
+            {dropdownOpen && <div className="profile-dropdown">
+              {isLoggedIn ? <>
+                <div className="profile-dropdown-heading"><b>{user?.name}</b><span>{user?.email}</span></div>
+                <Link href="/profile" onClick={() => setDropdownOpen(false)}><User className="h-4 w-4" /> Profile</Link>
+                {isAdmin && <Link href="/admin" onClick={() => setDropdownOpen(false)}><Settings className="h-4 w-4" /> Admin panel</Link>}
+                <button onClick={() => { signOut(); setDropdownOpen(false); }}><LogOut className="h-4 w-4" /> Sign out</button>
+              </> : <>
+                <Link href="/profile" onClick={() => setDropdownOpen(false)}><User className="h-4 w-4" /> Sign in / Profile</Link>
+                <Link href="/admin" onClick={() => setDropdownOpen(false)}><Settings className="h-4 w-4" /> Admin</Link>
+              </>}
+            </div>}
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </header>
   );
 }

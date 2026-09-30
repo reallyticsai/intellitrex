@@ -22,6 +22,77 @@ export async function GET(req: NextRequest) {
 
   const coinId = PAIR_TO_COINGECKO[pair] || "bitcoin";
 
+  if (["15", "30", "60", "240"].includes(interval)) {
+    const url = new URL("https://api.kraken.com/0/public/OHLC");
+    url.searchParams.set("pair", pair);
+    url.searchParams.set("interval", interval);
+
+    try {
+      const res = await fetch(url, { next: { revalidate: 30 } });
+      if (res.ok) {
+        const data = await res.json();
+        const pairKey = Object.keys(data.result ?? {}).find((key) => key !== "last");
+        const ohlcData = pairKey ? data.result[pairKey] : null;
+        if (!data.error?.length && Array.isArray(ohlcData)) {
+          const parsedLimit = Number.parseInt(limit, 10);
+          const candleLimit = Number.isFinite(parsedLimit) ? Math.max(1, Math.min(parsedLimit, 720)) : 96;
+          const candles = ohlcData.slice(-candleLimit).map(
+            (c: [number, string, string, string, string, string, string, number]) => ({
+              time: c[0],
+              open: Number(c[1]),
+              high: Number(c[2]),
+              low: Number(c[3]),
+              close: Number(c[4]),
+              volume: Number(c[6]),
+            })
+          );
+          return NextResponse.json({ pair, candles, source: "kraken" });
+        }
+      }
+    } catch {
+      // Use sampled CoinGecko prices if Kraken is unavailable for this pair.
+    }
+
+    try {
+      const fallbackDays = interval === "15" || interval === "30" ? "1" : interval === "60" ? "2" : "7";
+      const fallbackRes = await fetch(
+        `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${fallbackDays}`,
+        { next: { revalidate: 30 } }
+      );
+      if (!fallbackRes.ok) {
+        return NextResponse.json({ error: "Failed to fetch intraday prices" }, { status: 502 });
+      }
+      const fallbackData = await fallbackRes.json();
+      if (!Array.isArray(fallbackData.prices)) {
+        return NextResponse.json({ error: "Intraday prices are unavailable for this pair" }, { status: 502 });
+      }
+
+      const intervalSeconds = Number(interval) * 60;
+      const buckets = new Map<number, number[]>();
+      for (const [timestamp, price] of fallbackData.prices as [number, number][]) {
+        const candleTime = Math.floor(timestamp / (intervalSeconds * 1000)) * intervalSeconds;
+        const values = buckets.get(candleTime) ?? [];
+        values.push(price);
+        buckets.set(candleTime, values);
+      }
+
+      const parsedLimit = Number.parseInt(limit, 10);
+      const candleLimit = Number.isFinite(parsedLimit) ? Math.max(1, Math.min(parsedLimit, 720)) : 96;
+      const candles = Array.from(buckets, ([time, values]) => ({
+        time,
+        open: values[0],
+        high: Math.max(...values),
+        low: Math.min(...values),
+        close: values[values.length - 1],
+        volume: 0,
+      })).slice(-candleLimit);
+
+      return NextResponse.json({ pair, candles, source: "coingecko" });
+    } catch {
+      return NextResponse.json({ error: "Failed to fetch intraday prices" }, { status: 502 });
+    }
+  }
+
   // Determine days from limit + interval
   let days = limit;
   if (interval === "60") days = "1";
@@ -73,7 +144,7 @@ export async function GET(req: NextRequest) {
     );
 
     return NextResponse.json({ pair, candles });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch prices" }, { status: 500 });
   }
 }

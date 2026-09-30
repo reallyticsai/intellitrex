@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { SUPPORTED_COINS, MODELS } from "@/lib/constants";
-import { TrendingUp, TrendingDown, Activity } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity, ChevronDown } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
@@ -30,12 +30,20 @@ type Metrics = Record<
 >;
 
 const TIME_RANGES = [
+  { label: "15m", interval: "15", limit: 96 },
+  { label: "30m", interval: "30", limit: 48 },
+  { label: "1H", interval: "60", limit: 48 },
+  { label: "4H", interval: "240", limit: 42 },
   { label: "24H", interval: "60", limit: 24 },
   { label: "1W", interval: "1440", limit: 7 },
   { label: "1M", interval: "1440", limit: 30 },
+  { label: "3M", interval: "1440", limit: 90 },
   { label: "1Y", interval: "1440", limit: 365 },
   { label: "ALL", interval: "1440", limit: 720 },
 ];
+
+const PRIMARY_TIME_RANGES = TIME_RANGES.slice(0, 5);
+const MORE_TIME_RANGES = TIME_RANGES.slice(5);
 
 function computeSMA(candles: Candle[], period: number): (number | null)[] {
   return candles.map((_, i) => {
@@ -134,7 +142,8 @@ function FearGreedGauge({ value, label }: { value: number; label: string }) {
 export default function CurrencyPage() {
   const { isPremium } = useAuth();
   const [selectedCoin, setSelectedCoin] = useState(SUPPORTED_COINS[0] as typeof SUPPORTED_COINS[number]);
-  const [timeRange, setTimeRange] = useState(TIME_RANGES[1]);
+  const [timeRange, setTimeRange] = useState(TIME_RANGES.find((range) => range.label === "1W")!);
+  const [showMoreTimeRanges, setShowMoreTimeRanges] = useState(false);
   const [candles, setCandles] = useState<Candle[]>([]);
   const [fearGreed, setFearGreed] = useState<FearGreed | null>(null);
   const [forecasts, setForecasts] = useState<ForecastRow[]>([]);
@@ -186,12 +195,16 @@ export default function CurrencyPage() {
   }, []);
 
   useEffect(() => {
-    fetchPrices();
-    fetchForecasts();
+    const timeoutId = window.setTimeout(() => {
+      void fetchPrices();
+      void fetchForecasts();
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
   }, [fetchPrices, fetchForecasts]);
 
   useEffect(() => {
-    fetchFearGreedData();
+    const timeoutId = window.setTimeout(() => void fetchFearGreedData(), 0);
+    return () => window.clearTimeout(timeoutId);
   }, [fetchFearGreedData]);
 
   const latestCandle = candles[candles.length - 1];
@@ -243,7 +256,7 @@ export default function CurrencyPage() {
         const d = new Date(c.time * 1000);
         return {
           x: toX(idx, candles.length),
-          label: timeRange.interval === "60"
+          label: ["15", "30", "60", "240"].includes(timeRange.interval)
             ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
             : d.toLocaleDateString([], { month: "short", day: "numeric" }),
         };
@@ -313,21 +326,64 @@ export default function CurrencyPage() {
                   </select>
                 </div>
 
-                <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-                  {TIME_RANGES.map((tr) => (
+                <div className="flex items-center gap-1 rounded-lg border border-border bg-[#11161c] p-1">
+                  {PRIMARY_TIME_RANGES.map((tr) => (
                     <button
                       key={tr.label}
-                      onClick={() => setTimeRange(tr)}
+                      onClick={() => {
+                        setTimeRange(tr);
+                        setShowMoreTimeRanges(false);
+                      }}
                       className={cn(
-                        "px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
+                        "px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
                         timeRange.label === tr.label
-                          ? "bg-foreground text-background"
-                          : "text-muted-foreground hover:text-foreground"
+                          ? "bg-[#2b3139] text-white"
+                          : "text-muted-foreground hover:bg-[#1c232c] hover:text-foreground"
                       )}
                     >
                       {tr.label}
                     </button>
                   ))}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      aria-haspopup="menu"
+                      aria-expanded={showMoreTimeRanges}
+                      onClick={() => setShowMoreTimeRanges((open) => !open)}
+                      className={cn(
+                        "flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
+                        MORE_TIME_RANGES.some((range) => range.label === timeRange.label)
+                          ? "bg-[#2b3139] text-white"
+                          : "text-muted-foreground hover:bg-[#1c232c] hover:text-foreground"
+                      )}
+                    >
+                      {MORE_TIME_RANGES.some((range) => range.label === timeRange.label) ? timeRange.label : "More"}
+                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMoreTimeRanges && "rotate-180")} />
+                    </button>
+                    {showMoreTimeRanges && (
+                      <div role="menu" className="absolute right-0 top-full z-20 mt-1 min-w-24 rounded-lg border border-border bg-[#161b22] p-1 shadow-xl">
+                        {MORE_TIME_RANGES.map((tr) => (
+                          <button
+                            key={tr.label}
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              setTimeRange(tr);
+                              setShowMoreTimeRanges(false);
+                            }}
+                            className={cn(
+                              "block w-full rounded-md px-3 py-2 text-left text-xs font-medium transition-colors",
+                              timeRange.label === tr.label
+                                ? "bg-[#2b3139] text-white"
+                                : "text-muted-foreground hover:bg-[#222a33] hover:text-foreground"
+                            )}
+                          >
+                            {tr.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
