@@ -184,7 +184,7 @@ function ConsultancyContent() {
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left sidebar */}
-          <div className="min-w-0">
+          <div className="min-w-0 lg:flex lg:min-h-[600px] lg:flex-col">
             <div
               className="consultancy-mode-list space-y-4"
               role="region"
@@ -231,7 +231,7 @@ function ConsultancyContent() {
             )}
 
             {!isLoggedIn && (
-              <div className="bg-card rounded-xl border border-border p-4 text-center">
+              <div className="mt-6 bg-card rounded-xl border border-border p-4 text-center lg:mt-auto">
                 <Lock className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
                 <p className="text-xs text-muted-foreground mb-2">Sign in for 50 free AI responses</p>
                 <Link href="/profile" className="text-xs text-primary hover:underline font-medium">Sign In</Link>
