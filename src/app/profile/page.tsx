@@ -322,7 +322,12 @@ export default function ProfilePage() {
                 No chat history yet. Start a conversation in the <a href="/consultancy" className="text-primary hover:underline">Consultancy</a> page.
               </p>
             ) : (
-              <div className="space-y-3">
+              <div
+                className="scrollable-list space-y-3"
+                role="region"
+                aria-label="Chat history"
+                tabIndex={0}
+              >
                 {chatSessions.map((session) => (
                   <a
                     key={session.id}

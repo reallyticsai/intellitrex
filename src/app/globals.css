@@ -55,3 +55,44 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+.consultancy-mode-list,
+.scrollable-list,
+.scrollable-table {
+  max-height: min(32rem, 50svh);
+  overscroll-behavior: contain;
+  scrollbar-color: var(--border) transparent;
+  scrollbar-width: thin;
+}
+
+.consultancy-mode-list,
+.scrollable-list {
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.scrollable-table {
+  overflow: auto;
+}
+
+.consultancy-mode-list::-webkit-scrollbar,
+.scrollable-list::-webkit-scrollbar,
+.scrollable-table::-webkit-scrollbar {
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+.consultancy-mode-list::-webkit-scrollbar-thumb,
+.scrollable-list::-webkit-scrollbar-thumb,
+.scrollable-table::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+@media (min-width: 1024px) {
+  .consultancy-mode-list,
+  .scrollable-list,
+  .scrollable-table {
+    max-height: min(36rem, calc(100dvh - 14rem));
+  }
+}
