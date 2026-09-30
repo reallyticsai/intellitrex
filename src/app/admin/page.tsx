@@ -138,9 +138,9 @@ export default function AdminPage() {
             {users.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">No users registered yet.</p>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="scrollable-table" role="region" aria-label="Registered users">
                 <table className="w-full text-sm">
-                  <thead>
+                  <thead className="sticky top-0 bg-card">
                     <tr className="border-b border-border">
                       <th className="text-left py-2 text-muted-foreground font-medium">User</th>
                       <th className="text-left py-2 text-muted-foreground font-medium">Email</th>

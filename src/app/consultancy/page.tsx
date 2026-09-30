@@ -184,25 +184,32 @@ function ConsultancyContent() {
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left sidebar */}
-          <div className="space-y-4">
-            {CHATBOT_MODES.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setMode(m.id)}
-                className={cn(
-                  "w-full text-left rounded-xl p-5 border transition-colors",
-                  mode === m.id ? "border-primary bg-card" : "border-border bg-card/50 hover:bg-card"
-                )}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", mode === m.id ? "border-primary" : "border-muted-foreground")}>
-                    {mode === m.id && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+          <div className="min-w-0">
+            <div
+              className="consultancy-mode-list space-y-4"
+              role="region"
+              aria-label="Consultancy modes"
+              tabIndex={0}
+            >
+              {CHATBOT_MODES.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => setMode(m.id)}
+                  className={cn(
+                    "w-full text-left rounded-xl p-5 border transition-colors",
+                    mode === m.id ? "border-primary bg-card" : "border-border bg-card/50 hover:bg-card"
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center", mode === m.id ? "border-primary" : "border-muted-foreground")}>
+                      {mode === m.id && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                    </div>
+                    <h3 className="font-semibold text-foreground text-sm">{m.name}</h3>
                   </div>
-                  <h3 className="font-semibold text-foreground text-sm">{m.name}</h3>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed pl-7">{m.description}</p>
-              </button>
-            ))}
+                  <p className="text-xs text-muted-foreground leading-relaxed pl-7">{m.description}</p>
+                </button>
+              ))}
+            </div>
 
             {/* Chat usage */}
             {isLoggedIn && !isPremium && (
