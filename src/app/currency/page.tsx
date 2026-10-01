@@ -5,15 +5,7 @@ import { SUPPORTED_COINS, MODELS } from "@/lib/constants";
 import { TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
-
-type Candle = {
-  time: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-};
+import { computeBollinger, computeRSI, computeSMA, type Candle } from "@/lib/signals";
 
 type FearGreed = {
   current: { value: number; classification: string };
@@ -36,65 +28,6 @@ const TIME_RANGES = [
   { label: "1Y", interval: "1440", limit: 365 },
   { label: "ALL", interval: "1440", limit: 720 },
 ];
-
-function computeSMA(candles: Candle[], period: number): (number | null)[] {
-  return candles.map((_, i) => {
-    if (i < period - 1) return null;
-    const slice = candles.slice(i - period + 1, i + 1);
-    return slice.reduce((sum, c) => sum + c.close, 0) / period;
-  });
-}
-
-function computeRSI(candles: Candle[], period = 14): (number | null)[] {
-  const result: (number | null)[] = new Array(candles.length).fill(null);
-  if (candles.length < period + 1) return result;
-
-  let avgGain = 0;
-  let avgLoss = 0;
-  for (let i = 1; i <= period; i++) {
-    const change = candles[i].close - candles[i - 1].close;
-    if (change > 0) avgGain += change;
-    else avgLoss -= change;
-  }
-  avgGain /= period;
-  avgLoss /= period;
-
-  result[period] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
-
-  for (let i = period + 1; i < candles.length; i++) {
-    const change = candles[i].close - candles[i - 1].close;
-    avgGain = (avgGain * (period - 1) + (change > 0 ? change : 0)) / period;
-    avgLoss = (avgLoss * (period - 1) + (change < 0 ? -change : 0)) / period;
-    result[i] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
-  }
-  return result;
-}
-
-function computeBollinger(
-  candles: Candle[],
-  period = 20,
-  mult = 2
-): { upper: (number | null)[]; lower: (number | null)[]; middle: (number | null)[] } {
-  const middle = computeSMA(candles, period);
-  const upper: (number | null)[] = [];
-  const lower: (number | null)[] = [];
-
-  candles.forEach((_, i) => {
-    if (middle[i] === null) {
-      upper.push(null);
-      lower.push(null);
-      return;
-    }
-    const slice = candles.slice(i - period + 1, i + 1);
-    const std = Math.sqrt(
-      slice.reduce((sum, c) => sum + Math.pow(c.close - middle[i]!, 2), 0) / period
-    );
-    upper.push(middle[i]! + mult * std);
-    lower.push(middle[i]! - mult * std);
-  });
-
-  return { upper, lower, middle };
-}
 
 function formatPrice(price: number): string {
   if (price >= 1000) return `$${price.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
