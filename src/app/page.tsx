@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { MarketSignals } from "@/components/market-signals";
 import {
   TrendingUp,
-  BarChart3,
+  Activity,
   Brain,
   Shield,
   LineChart,
@@ -17,7 +18,7 @@ const FEATURES = [
     icon: LineChart,
     title: "Live Market Data",
     description:
-      "Real-time cryptocurrency prices powered by Kraken exchange. Track 12+ coins with professional-grade charting.",
+      "Live cryptocurrency prices from CoinGecko. Track 10 major coins with interactive charts and hover details.",
   },
   {
     icon: Brain,
@@ -26,10 +27,10 @@ const FEATURES = [
       "4 ML models (XGBoost, Prophet, NHITS, GRU) ensembled for 7-day price predictions. Updated daily.",
   },
   {
-    icon: BarChart3,
-    title: "Technical Analysis",
+    icon: Activity,
+    title: "Market Signals",
     description:
-      "Built-in indicators — SMA, RSI, Bollinger Bands, volatility scoring, and Fear & Greed Index.",
+      "Plain-language trend, RSI, and Fear & Greed signals for every coin, plus SMA and Bollinger Bands on the charts.",
   },
   {
     icon: Bot,
@@ -49,19 +50,6 @@ const FEATURES = [
     description:
       "Built on peer-reviewed research methodologies. Fear & Greed sentiment, multi-model consensus approach.",
   },
-];
-
-const COINS = [
-  { symbol: "BTC", name: "Bitcoin" },
-  { symbol: "ETH", name: "Ethereum" },
-  { symbol: "SOL", name: "Solana" },
-  { symbol: "XRP", name: "XRP" },
-  { symbol: "ARB", name: "Arbitrum" },
-  { symbol: "DOT", name: "Polkadot" },
-  { symbol: "LINK", name: "Chainlink" },
-  { symbol: "KSM", name: "Kusama" },
-  { symbol: "PYTH", name: "Pyth" },
-  { symbol: "SUI", name: "Sui" },
 ];
 
 export default function LandingPage() {
@@ -113,30 +101,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Supported Coins */}
-      <section className="py-12 px-6">
-        <div className="max-w-7xl mx-auto">
-          <p className="text-center text-sm text-muted-foreground mb-6 uppercase tracking-wider">
-            Supported Cryptocurrencies
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            {COINS.map((coin) => (
-              <div
-                key={coin.symbol}
-                className="bg-card rounded-xl px-5 py-3 flex items-center gap-2 border border-border"
-              >
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-xs font-bold text-primary">{coin.symbol[0]}</span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">{coin.symbol}</p>
-                  <p className="text-xs text-muted-foreground">{coin.name}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <MarketSignals />
 
       {/* Features Grid */}
       <section className="py-20 px-6">
@@ -186,7 +151,7 @@ export default function LandingPage() {
               {
                 step: "01",
                 title: "Explore Markets",
-                desc: "Browse live prices, charts, and technical indicators for 12+ cryptocurrencies.",
+                desc: "Browse live prices, charts, and market signals for 10 major cryptocurrencies.",
               },
               {
                 step: "02",
