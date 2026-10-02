@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { normalizeDailyPrices } from "@/lib/signals";
+import { TIME_RANGES } from "@/lib/constants";
 
 // Map our pair IDs to CoinGecko IDs
 const PAIR_TO_COINGECKO: Record<string, string> = {
@@ -14,66 +16,67 @@ const PAIR_TO_COINGECKO: Record<string, string> = {
   SUIUSD: "sui",
 };
 
-
 export async function GET(req: NextRequest) {
   const pair = req.nextUrl.searchParams.get("pair") || "XXBTZUSD";
   const interval = req.nextUrl.searchParams.get("interval") || "1440";
   const limit = req.nextUrl.searchParams.get("limit") || "30";
+  const resolution = req.nextUrl.searchParams.get("resolution");
+  const daily = resolution === "daily";
 
-  const coinId = PAIR_TO_COINGECKO[pair] || "bitcoin";
+  if (!Object.hasOwn(PAIR_TO_COINGECKO, pair)) {
+    return NextResponse.json({ error: "Unsupported currency pair" }, { status: 400 });
+  }
+  const coinId = PAIR_TO_COINGECKO[pair];
+  if (resolution !== null && !daily) {
+    return NextResponse.json({ error: "Unsupported resolution" }, { status: 400 });
+  }
 
-  // Determine days from limit + interval
-  let days = limit;
-  if (interval === "60") days = "1";
-  else if (parseInt(limit) > 365) days = "max";
+  // Daily history is independent of the display window and includes indicator warm-up.
+  let days = "365";
+  if (!daily) {
+    const range = TIME_RANGES.find((range) => range.interval === interval && String(range.limit) === limit);
+    if (!range) return NextResponse.json({ error: "Unsupported chart range" }, { status: 400 });
+    days = range.interval === "60" ? "1" : range.limit > 365 ? "max" : String(range.limit);
+  }
 
   try {
-    // Fetch OHLC data from CoinGecko
     const res = await fetch(
-      `https://api.coingecko.com/api/v3/coins/${coinId}/ohlc?vs_currency=usd&days=${days}`,
-      { next: { revalidate: 60 } }
+      `https://api.coingecko.com/api/v3/coins/${coinId}/${daily ? "market_chart" : "ohlc"}?vs_currency=usd&days=${days}${daily ? "&interval=daily" : ""}`,
+      { next: { revalidate: 60 }, signal: AbortSignal.timeout(10000) }
     );
+    if (!res.ok) throw new Error("Price source unavailable");
+    const data = await res.json();
 
-    if (!res.ok) {
-      // Fallback to market_chart for simple price data
-      const fallbackRes = await fetch(
-        `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`,
-        { next: { revalidate: 60 } }
-      );
-      const fallbackData = await fallbackRes.json();
-
-      if (fallbackData.prices) {
-        const candles = fallbackData.prices.map(
-          ([time, price]: [number, number]) => ({
-            time: Math.floor(time / 1000),
-            open: price,
-            high: price * 1.001,
-            low: price * 0.999,
-            close: price,
-            volume: 0,
-          })
-        );
-        return NextResponse.json({ pair, candles });
-      }
-      return NextResponse.json({ error: "Failed to fetch prices" }, { status: 500 });
+    if (daily) {
+      if (!Array.isArray(data.prices)) throw new Error("Daily prices missing");
+      const history = normalizeDailyPrices(data.prices, Date.now());
+      if (history.length < 91) throw new Error("Insufficient daily history");
+      // A close-only observation does not supply an open, high, low, or volume.
+      const candles = history.map((point) => ({
+        ...point, open: null, high: null, low: null, volume: null,
+      }));
+      return NextResponse.json({ pair, candles });
     }
 
-    const ohlcData = await res.json();
+    if (!Array.isArray(data) || !data.length || data.some((point) =>
+      !Array.isArray(point) || point.length !== 5 ||
+      point.some((value) => typeof value !== "number" || !Number.isFinite(value) || value <= 0)
+    )) throw new Error("Invalid OHLC response");
 
     // CoinGecko OHLC format: [[timestamp, open, high, low, close], ...]
-    const candles = ohlcData.map(
+    const candles = data.map(
       (c: [number, number, number, number, number]) => ({
         time: Math.floor(c[0] / 1000),
         open: c[1],
         high: c[2],
         low: c[3],
         close: c[4],
-        volume: 0,
+        volume: null,
       })
     );
 
     return NextResponse.json({ pair, candles });
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch prices" }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: daily ? "Daily history unavailable" : "Price data unavailable" }, { status: 502 });
   }
 }
