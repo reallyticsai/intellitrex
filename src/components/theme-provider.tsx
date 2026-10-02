@@ -19,6 +19,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const saved = localStorage.getItem("intellitrex-theme") as Theme | null;
     if (saved) {
+      // Rehydrate browser preference after SSR so the initial HTML remains stable.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTheme(saved);
       document.documentElement.classList.toggle("dark", saved === "dark");
     }

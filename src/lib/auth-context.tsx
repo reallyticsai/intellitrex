@@ -163,6 +163,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const adminFlag = sessionStorage.getItem("intellitrex-admin");
+    // Restore authenticated state from browser storage after client hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (adminFlag === "true") setIsAdmin(true);
 
     const userId = getCurrentUserId();
