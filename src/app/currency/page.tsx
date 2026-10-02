@@ -186,11 +186,15 @@ export default function CurrencyPage() {
   }, []);
 
   useEffect(() => {
+    // These callbacks synchronize the selected market view with remote APIs.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchPrices();
     fetchForecasts();
   }, [fetchPrices, fetchForecasts]);
 
   useEffect(() => {
+    // Load the sentiment feed as an external data source for this screen.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchFearGreedData();
   }, [fetchFearGreedData]);
 

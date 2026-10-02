@@ -68,6 +68,8 @@ function ConsultancyContent() {
     if (resumeSessionId && !initialized) {
       const session = loadChatSession(resumeSessionId);
       if (session) {
+        // Restore the requested chat from browser storage after auth rehydration.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSessionId(session.id);
         setMode(session.mode);
         setMessages(session.messages.map((m) => ({ role: m.role, content: m.content })));
