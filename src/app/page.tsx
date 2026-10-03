@@ -1,260 +1,172 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Activity, ArrowRight, Bot, ChartNoAxesCombined, RefreshCw } from "lucide-react";
 import {
-  TrendingUp,
-  BarChart3,
-  Brain,
-  Shield,
-  LineChart,
-  Bot,
-  Wallet,
-  ArrowRight,
-} from "lucide-react";
+  BitcoinMarketCard,
+  MarketSummary,
+  TickerStrip,
+  TopMovers,
+  type MarketCoin,
+} from "@/components/home/market-components";
+
+type MarketStatus = "loading" | "ready" | "error";
+
+let marketRequest: Promise<MarketCoin[]> | null = null;
+
+function fetchMarketsOnce() {
+  if (!marketRequest) {
+    marketRequest = fetch("/api/markets")
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Market data request failed");
+        const markets = (await response.json()) as MarketCoin[];
+        if (!Array.isArray(markets) || markets.length !== 10) {
+          throw new Error("Market data response was incomplete");
+        }
+        return markets;
+      })
+      .finally(() => {
+        marketRequest = null;
+      });
+  }
+  return marketRequest;
+}
 
 const FEATURES = [
   {
-    icon: LineChart,
-    title: "Live Market Data",
-    description:
-      "Real-time cryptocurrency prices powered by Kraken exchange. Track 12+ coins with professional-grade charting.",
+    icon: ChartNoAxesCombined,
+    title: "Read the price action",
+    description: "Explore market charts with technical indicators and forecast views.",
+    href: "/currency",
   },
   {
-    icon: Brain,
-    title: "AI-Powered Forecasting",
-    description:
-      "4 ML models (XGBoost, Prophet, NHITS, GRU) ensembled for 7-day price predictions. Updated daily.",
-  },
-  {
-    icon: BarChart3,
-    title: "Technical Analysis",
-    description:
-      "Built-in indicators — SMA, RSI, Bollinger Bands, volatility scoring, and Fear & Greed Index.",
+    icon: Activity,
+    title: "Check market sentiment",
+    description: "Use the Fear & Greed index alongside price history for broader context.",
+    href: "/currency",
   },
   {
     icon: Bot,
-    title: "AI Trading Consultant",
-    description:
-      "Chat with an AI advisor in 3 modes: Risk-Averse, Active Trader, or Learning. Personalized insights.",
+    title: "Ask the AI advisor",
+    description: "Talk through crypto concepts and market context in an advisor conversation.",
+    href: "/consultancy",
   },
-  {
-    icon: Wallet,
-    title: "Portfolio Analysis",
-    description:
-      "Connect your Binance account for automated investment analysis. See forecasts mapped to your holdings.",
-  },
-  {
-    icon: Shield,
-    title: "Research-Driven",
-    description:
-      "Built on peer-reviewed research methodologies. Fear & Greed sentiment, multi-model consensus approach.",
-  },
-];
-
-const COINS = [
-  { symbol: "BTC", name: "Bitcoin" },
-  { symbol: "ETH", name: "Ethereum" },
-  { symbol: "SOL", name: "Solana" },
-  { symbol: "XRP", name: "XRP" },
-  { symbol: "ARB", name: "Arbitrum" },
-  { symbol: "DOT", name: "Polkadot" },
-  { symbol: "LINK", name: "Chainlink" },
-  { symbol: "KSM", name: "Kusama" },
-  { symbol: "PYTH", name: "Pyth" },
-  { symbol: "SUI", name: "Sui" },
 ];
 
 export default function LandingPage() {
+  const [markets, setMarkets] = useState<MarketCoin[]>([]);
+  const [status, setStatus] = useState<MarketStatus>("loading");
+
+  useEffect(() => {
+    let active = true;
+    void fetchMarketsOnce()
+      .then((data) => {
+        if (!active) return;
+        setMarkets(data);
+        setStatus("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+        setMarkets([]);
+        setStatus("error");
+      });
+    return () => { active = false; };
+  }, []);
+
+  function retryMarkets() {
+    setStatus("loading");
+    void fetchMarketsOnce()
+      .then((data) => {
+        setMarkets(data);
+        setStatus("ready");
+      })
+      .catch(() => {
+        setMarkets([]);
+        setStatus("error");
+      });
+  }
+
+  const bitcoin = markets.find((market) => market.id === "bitcoin");
+
   return (
-    <div className="min-h-screen">
-      {/* Hero */}
-      <section className="relative overflow-hidden py-24 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-card rounded-3xl p-12 flex flex-col lg:flex-row items-center gap-12">
-            <div className="w-full lg:w-5/12 aspect-[3/4] rounded-2xl bg-gradient-to-br from-primary/80 via-primary/60 to-primary/40 relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-white/20" />
-              <div className="absolute top-6 left-6 bg-card/90 backdrop-blur rounded-full px-4 py-2 flex items-center gap-2">
-                <div className="w-6 h-6 bg-accent rounded-md flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">*</span>
-                </div>
-                <span className="text-sm font-medium text-foreground">Intellitrex</span>
-              </div>
-            </div>
+    <main className="min-h-screen overflow-x-clip bg-background text-foreground">
+      <TickerStrip markets={markets} status={status} />
 
-            <div className="flex-1 text-center lg:text-left">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-tight">
-                THE{" "}
-                <span className="inline-flex items-center justify-center w-12 h-12 bg-accent rounded-lg align-middle">
-                  <TrendingUp className="w-6 h-6 text-white" />
-                </span>{" "}
-                PATH TO FINANCIAL EMPOWERMENT
-              </h1>
-              <p className="mt-6 text-lg text-muted-foreground max-w-xl">
-                Empower your trades with real-time insights and data-driven decisions.
-                Maximize opportunities and navigate markets confidently with intelligent
-                trading analysis.
-              </p>
-              <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Link
-                  href="/currency"
-                  className="inline-flex items-center justify-center px-8 py-3.5 bg-foreground text-background rounded-full font-medium hover:opacity-90 transition-opacity"
-                >
-                  Get Started
-                </Link>
-                <Link
-                  href="/consultancy"
-                  className="inline-flex items-center justify-center px-8 py-3.5 border border-border rounded-full font-medium text-foreground hover:bg-muted transition-colors"
-                >
-                  Talk to AI Advisor
-                </Link>
-              </div>
-            </div>
-          </div>
+      {status === "error" && (
+        <div role="alert" className="mx-auto flex max-w-[1360px] flex-wrap items-center justify-between gap-3 px-4 pt-4 sm:px-6 lg:px-10">
+          <p className="text-sm font-medium text-danger">Market data unavailable.</p>
+          <button type="button" onClick={retryMarkets} className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:border-primary/50">
+            <RefreshCw className="h-4 w-4" /> Retry
+          </button>
         </div>
-      </section>
+      )}
 
-      {/* Supported Coins */}
-      <section className="py-12 px-6">
-        <div className="max-w-7xl mx-auto">
-          <p className="text-center text-sm text-muted-foreground mb-6 uppercase tracking-wider">
-            Supported Cryptocurrencies
+      <section className="mx-auto grid max-w-[1360px] items-center gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[1fr_0.9fr] lg:gap-12 lg:px-10 lg:py-16">
+        <div className="max-w-2xl">
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.17em] text-muted-foreground">
+            <span className="h-2 w-2 rounded-full bg-success" />
+            Crypto markets, made clearer
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            {COINS.map((coin) => (
-              <div
-                key={coin.symbol}
-                className="bg-card rounded-xl px-5 py-3 flex items-center gap-2 border border-border"
-              >
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-xs font-bold text-primary">{coin.symbol[0]}</span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">{coin.symbol}</p>
-                  <p className="text-xs text-muted-foreground">{coin.name}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features Grid */}
-      <section className="py-20 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-              Everything You Need for Informed Trading
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Combining cutting-edge machine learning with real-time market data to give you
-              an analytical edge.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {FEATURES.map((feature) => {
-              const Icon = feature.icon;
-              return (
-                <div
-                  key={feature.title}
-                  className="bg-card rounded-2xl p-8 border border-border hover:border-primary/30 transition-colors"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                    <Icon className="w-6 h-6 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
-                    {feature.title}
-                  </h3>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
-                    {feature.description}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="py-20 px-6 bg-card/50">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground text-center mb-16">
-            How It Works
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                step: "01",
-                title: "Explore Markets",
-                desc: "Browse live prices, charts, and technical indicators for 12+ cryptocurrencies.",
-              },
-              {
-                step: "02",
-                title: "View AI Forecasts",
-                desc: "See 7-day price predictions from our ensemble of 4 ML models updated daily.",
-              },
-              {
-                step: "03",
-                title: "Get Personalized Advice",
-                desc: "Connect your portfolio and chat with our AI advisor for tailored insights.",
-              },
-            ].map((item) => (
-              <div key={item.step} className="text-center">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-                  <span className="text-xl font-bold text-primary">{item.step}</span>
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">{item.title}</h3>
-                <p className="text-muted-foreground text-sm">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-20 px-6">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
-            Ready to Trade Smarter?
-          </h2>
-          <p className="text-lg text-muted-foreground mb-8">
-            Start exploring AI-powered market insights and make data-driven decisions today.
+          <h1 className="mt-4 text-4xl font-semibold leading-[1.04] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+            A clearer view of the crypto market.
+          </h1>
+          <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
+            Follow live prices, compare market moves, and explore context for your next research session.
           </p>
-          <Link
-            href="/currency"
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary text-primary-foreground rounded-full font-medium hover:opacity-90 transition-opacity"
-          >
-            Launch Dashboard <ArrowRight className="w-4 h-4" />
+          <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+            <Link href="/currency" className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
+              Open charts <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link href="/consultancy" className="inline-flex items-center justify-center gap-2 rounded-full border border-border bg-card px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
+              Ask the AI advisor
+            </Link>
+          </div>
+        </div>
+        <BitcoinMarketCard market={bitcoin} status={status} />
+      </section>
+
+      <MarketSummary markets={markets} status={status} />
+      <TopMovers markets={markets} status={status} />
+
+      <section className="mx-auto max-w-[1360px] px-4 py-10 sm:px-6 sm:py-14 lg:px-10">
+        <div className="mb-6 max-w-2xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">The IntelliTrex toolkit</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Market context for every check-in</h2>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          {FEATURES.map((feature) => {
+            const Icon = feature.icon;
+            return (
+              <Link key={feature.title} href={feature.href} className="group rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary/40 sm:p-6">
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="h-5 w-5" /></span>
+                <h3 className="mt-5 text-base font-semibold text-foreground">{feature.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{feature.description}</p>
+                <span className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-primary">Explore <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" /></span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-[1360px] px-4 pb-10 sm:px-6 sm:pb-14 lg:px-10">
+        <div className="flex flex-col gap-5 rounded-3xl bg-foreground px-5 py-7 text-background sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-9">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] opacity-70">Keep exploring</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Bring more context to your market research.</h2>
+            <p className="mt-2 text-sm opacity-70">Open a chart and explore price history, indicators, and sentiment.</p>
+          </div>
+          <Link href="/currency" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-background px-5 py-3 text-sm font-semibold text-foreground transition-opacity hover:opacity-90">
+            Explore charts <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
-      </section>
 
-      {/* Disclaimer */}
-      <section className="py-12 px-6 border-t border-border">
-        <div className="max-w-4xl mx-auto text-center">
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            <strong>Disclaimer:</strong> Intellitrex is a research and analytics platform for
-            educational purposes. We do not provide financial advice. All trading and
-            investment decisions are made at your own risk. Cryptocurrency markets are
-            volatile and past performance does not guarantee future results. Always do your
-            own research before making investment decisions. By using this platform, you
-            acknowledge that Intellitrex and Reallytics AI are not responsible for any
-            financial losses.
+        <footer className="mt-8 border-t border-border pt-5 text-xs leading-5 text-muted-foreground">
+          <p className="max-w-5xl">
+            <strong className="font-semibold text-foreground">Disclaimer:</strong> IntelliTrex is a research and analytics platform for educational purposes. We do not provide financial advice. All trading and investment decisions are made at your own risk. Cryptocurrency markets are volatile and past performance does not guarantee future results. Always do your own research before making investment decisions. By using this platform, you acknowledge that IntelliTrex and Reallytics AI are not responsible for any financial losses.
           </p>
-          <p className="mt-4 text-xs text-muted-foreground">
-            Built by{" "}
-            <a
-              href="https://github.com/reallyticsai"
-              className="text-primary hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Reallytics AI
-            </a>{" "}
-            &middot; {new Date().getFullYear()}
-          </p>
-        </div>
+        </footer>
       </section>
-    </div>
+    </main>
   );
 }
