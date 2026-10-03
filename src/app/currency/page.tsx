@@ -29,6 +29,16 @@ type Metrics = Record<
   { MAE?: number; RMSE?: number; R2?: number; [key: string]: number | undefined }
 >;
 
+type IndicatorControl = {
+  label: string;
+  active: boolean;
+  toggle: () => void;
+  color: string;
+  title: string;
+  note?: string;
+  unavailable: string | null;
+};
+
 const TIME_RANGES = [
   { label: "24H", interval: "60", limit: 24 },
   { label: "1W", interval: "1440", limit: 7 },
@@ -100,6 +110,41 @@ function formatPrice(price: number): string {
   if (price >= 1000) return `$${price.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
   if (price >= 1) return `$${price.toFixed(2)}`;
   return `$${price.toFixed(4)}`;
+}
+
+function formatChartXAxisLabel(
+  date: Date,
+  rangeLabel: string,
+  hasDuplicateDate: boolean,
+  dataSpanMs: number
+): string {
+  const weekday = date.toLocaleDateString([], { weekday: "short" });
+  const day = date.toLocaleDateString([], { day: "numeric" });
+  const hour = date.toLocaleTimeString([], { hour: "numeric" });
+
+  if (rangeLabel === "24H") {
+    return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
+
+  if (rangeLabel === "1W") {
+    if (hasDuplicateDate) {
+      return `${weekday} ${hour}`;
+    }
+    return `${weekday} ${day}`;
+  }
+
+  if (rangeLabel === "1M") {
+    return date.toLocaleDateString([], { month: "short", day: "numeric" });
+  }
+
+  if (rangeLabel === "1Y") {
+    return date.toLocaleDateString([], { month: "short" });
+  }
+
+  const spansMultipleYears = dataSpanMs > 1000 * 60 * 60 * 24 * 365 * 2;
+  return spansMultipleYears
+    ? date.toLocaleDateString([], { year: "numeric" })
+    : date.toLocaleDateString([], { month: "short", year: "2-digit" });
 }
 
 function FearGreedGauge({ value, label }: { value: number; label: string }) {
@@ -210,6 +255,12 @@ export default function CurrencyPage() {
   const sma20 = showSMA ? computeSMA(candles, 20) : [];
   const rsi = showRSI ? computeRSI(candles) : [];
   const bollinger = showBollinger ? computeBollinger(candles) : null;
+  const hasUsableSMA = sma20.some((v) => v !== null);
+  const hasUsableRSI = rsi.some((v) => v !== null);
+  const hasUsableBollinger =
+    !!bollinger &&
+    bollinger.upper.some((v) => v !== null) &&
+    bollinger.lower.some((v) => v !== null);
 
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
@@ -236,16 +287,29 @@ export default function CurrencyPage() {
 
   // X-axis date labels (max 6)
   const xLabelCount = Math.min(candles.length, 6);
+  const xLabelIndexes = candles.length > 1
+    ? Array.from({ length: xLabelCount }, (_, i) =>
+        Math.floor((i / (xLabelCount - 1)) * (candles.length - 1))
+      )
+    : [];
+  const xLabelDates = xLabelIndexes.map((idx) => new Date(candles[idx].time * 1000));
+  const xLabelDateCounts = xLabelDates.reduce<Record<string, number>>((counts, date) => {
+    const key = date.toDateString();
+    counts[key] = (counts[key] || 0) + 1;
+    return counts;
+  }, {});
+  const dataSpanMs =
+    candles.length > 1
+      ? (candles[candles.length - 1].time - candles[0].time) * 1000
+      : 0;
   const xLabels = candles.length > 1
-    ? Array.from({ length: xLabelCount }, (_, i) => {
-        const idx = Math.floor((i / (xLabelCount - 1)) * (candles.length - 1));
+    ? xLabelIndexes.map((idx) => {
         const c = candles[idx];
         const d = new Date(c.time * 1000);
+        const hasDuplicateDate = xLabelDateCounts[d.toDateString()] > 1;
         return {
           x: toX(idx, candles.length),
-          label: timeRange.interval === "60"
-            ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-            : d.toLocaleDateString([], { month: "short", day: "numeric" }),
+          label: formatChartXAxisLabel(d, timeRange.label, hasDuplicateDate, dataSpanMs),
         };
       })
     : [];
@@ -415,7 +479,7 @@ export default function CurrencyPage() {
                     ))}
 
                     {/* Bollinger band fill */}
-                    {bollinger && (() => {
+                    {bollinger && hasUsableBollinger && (() => {
                       const upperPts = bollinger.upper
                         .map((v, i) => (v !== null ? `${toX(i, candles.length)},${toY(v)}` : null))
                         .filter(Boolean);
@@ -520,52 +584,136 @@ export default function CurrencyPage() {
                 )}
               </div>
 
+              {/* Chart legend */}
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <span className="h-0 w-7 border-t-2 border-[#22c55e]" />
+                  <span>Price</span>
+                </div>
+                {forecastLine && (
+                  <div className="flex items-center gap-2">
+                    <span className="h-0 w-7 border-t-2 border-dashed border-[#5b7cfa]" />
+                    <span>Forecast</span>
+                  </div>
+                )}
+                {showSMA && hasUsableSMA && (
+                  <div className="flex items-center gap-2">
+                    <span className="h-0 w-7 border-t-2 border-dashed border-[#f59e0b]" />
+                    <span>SMA 20</span>
+                  </div>
+                )}
+                {showBollinger && hasUsableBollinger && (
+                  <div className="flex items-center gap-2">
+                    <span className="h-2.5 w-7 rounded-sm border border-purple-400/50 bg-purple-400/15" />
+                    <span>Bollinger Bands</span>
+                  </div>
+                )}
+              </div>
+
               {/* Indicator toggles */}
-              <div className="flex flex-wrap gap-3 mt-4">
-                {[
-                  { label: "SMA 20", active: showSMA, toggle: () => setShowSMA(!showSMA), color: "bg-yellow-500" },
-                  { label: "RSI", active: showRSI, toggle: () => setShowRSI(!showRSI), color: "bg-blue-500" },
+              <div className="flex flex-wrap items-center gap-3 mt-4">
+                {([
+                  {
+                    label: "SMA 20",
+                    active: showSMA,
+                    toggle: () => setShowSMA(!showSMA),
+                    color: "bg-yellow-500",
+                    title: "Toggle SMA 20 line on the chart",
+                    unavailable: showSMA && !hasUsableSMA ? "Needs 20 points" : null,
+                  },
+                  {
+                    label: "RSI",
+                    active: showRSI,
+                    toggle: () => setShowRSI(!showRSI),
+                    color: "bg-blue-500",
+                    title: "Toggle RSI details below the chart",
+                    note: "details below",
+                    unavailable: showRSI && !hasUsableRSI ? "Needs 15 points" : null,
+                  },
                   {
                     label: "Bollinger",
                     active: showBollinger,
                     toggle: () => setShowBollinger(!showBollinger),
                     color: "bg-purple-500",
+                    title: "Toggle Bollinger Bands on the chart",
+                    unavailable: showBollinger && !hasUsableBollinger ? "Needs 20 points" : null,
                   },
-                ].map((ind) => (
-                  <button
-                    key={ind.label}
-                    onClick={ind.toggle}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
-                      ind.active
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:text-foreground"
+                ] satisfies IndicatorControl[]).map((ind) => (
+                  <div key={ind.label} className="flex flex-col gap-1">
+                    <button
+                      onClick={ind.toggle}
+                      aria-pressed={ind.active}
+                      title={ind.unavailable ? `${ind.title}. ${ind.unavailable}` : ind.title}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
+                        ind.active
+                          ? "border-primary bg-primary/15 text-primary shadow-sm ring-1 ring-primary/20"
+                          : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                        ind.unavailable && "border-border bg-muted/40 text-muted-foreground ring-0"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "inline-block w-2 h-2 rounded-full",
+                          ind.active && !ind.unavailable
+                            ? ind.color
+                            : "bg-muted-foreground/35"
+                        )}
+                      />
+                      <span>{ind.label}</span>
+                      <span
+                        className={cn(
+                          "rounded-full px-1.5 py-0.5 text-[10px] leading-none",
+                          ind.active && !ind.unavailable
+                            ? "bg-primary/15 text-primary"
+                            : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {ind.active ? "On" : "Off"}
+                      </span>
+                      {ind.note && (
+                        <span className="sr-only">, shows {ind.note}</span>
+                      )}
+                      {ind.unavailable && (
+                        <span className="sr-only">, {ind.unavailable}</span>
+                      )}
+                    </button>
+                    {ind.unavailable && (
+                      <span className="px-1 text-[10px] leading-none text-muted-foreground">
+                        {ind.unavailable}
+                      </span>
                     )}
-                  >
-                    <span className={cn("inline-block w-2 h-2 rounded-full mr-1.5", ind.color)} />
-                    {ind.label}
-                  </button>
+                  </div>
                 ))}
 
-                <select
-                  value={selectedModel}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === "ensemble" && !isPremium) return;
-                    setSelectedModel(val);
-                  }}
-                  className="ml-auto px-3 py-1.5 rounded-lg border border-border bg-card text-foreground text-xs"
-                >
-                  {MODELS.map((m) => {
-                    const val = m.toLowerCase();
-                    const locked = val === "ensemble" && !isPremium;
-                    return (
-                      <option key={m} value={val} disabled={locked}>
-                        {locked ? `\uD83D\uDD12 ${m} (Premium)` : `Forecast: ${m}`}
-                      </option>
-                    );
-                  })}
-                </select>
+                <div className="ml-auto flex items-center gap-2">
+                  <label
+                    htmlFor="forecast-model"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    Forecast model
+                  </label>
+                  <select
+                    id="forecast-model"
+                    value={selectedModel}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "ensemble" && !isPremium) return;
+                      setSelectedModel(val);
+                    }}
+                    className="px-3 py-1.5 rounded-lg border border-border bg-card text-foreground text-xs"
+                  >
+                    {MODELS.map((m) => {
+                      const val = m.toLowerCase();
+                      const locked = val === "ensemble" && !isPremium;
+                      return (
+                        <option key={m} value={val} disabled={locked}>
+                          {locked ? `\uD83D\uDD12 ${m} (Premium)` : m}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -600,7 +748,7 @@ export default function CurrencyPage() {
             )}
 
             {/* RSI display */}
-            {showRSI && lastRSI !== null && (
+            {showRSI && hasUsableRSI && lastRSI !== null && (
               <div className="bg-card rounded-2xl p-6 border border-border">
                 <h3 className="font-semibold text-foreground mb-2">RSI (14)</h3>
                 <div className="flex items-center gap-4">
