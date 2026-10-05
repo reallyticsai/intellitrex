@@ -58,6 +58,7 @@ function ConsultancyContent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [sessionId, setSessionId] = useState(() => "session-" + Date.now());
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -143,6 +144,7 @@ function ConsultancyContent() {
     setMessages(newMessages);
     setInput("");
     setLoading(true);
+    setChatError(null);
 
     try {
       const res = await fetch("/api/chat", {
@@ -151,25 +153,28 @@ function ConsultancyContent() {
         body: JSON.stringify({ message: msg, mode, history: messages.slice(-10) }),
       });
       const data = await res.json();
+      if (!res.ok || typeof data.response !== "string" || !data.response.trim()) {
+        throw new Error(data.error?.message || "The AI advisor could not respond. Please try again.");
+      }
       const assistantMsg: Message = {
         role: "assistant",
-        content: data.response || data.error || "No response",
+        content: data.response,
       };
       const updatedMessages = [...newMessages, assistantMsg];
       setMessages(updatedMessages);
       incrementChatCount();
       saveCurrentSession(updatedMessages);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Sorry, the AI advisor is temporarily unavailable." },
-      ]);
+    } catch (error) {
+      setMessages(messages);
+      setInput(msg);
+      setChatError(error instanceof Error ? error.message : "The AI advisor is temporarily unavailable.");
     }
     setLoading(false);
   };
 
   const newDialog = () => {
     setMessages([]);
+    setChatError(null);
     setSessionId("session-" + Date.now());
     // Clear the URL param
     window.history.replaceState(null, "", "/consultancy");
@@ -181,6 +186,7 @@ function ConsultancyContent() {
     <div className="min-h-screen py-8 px-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold text-foreground mb-8">Consultancy</h1>
+        {chatError && <div role="alert" className="mb-4 rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm text-danger">{chatError}</div>}
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left sidebar */}

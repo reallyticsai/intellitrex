@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --conditions=react-server --import tsx tests/run.ts",
+    "model-settings:setup": "node --conditions=react-server --import tsx scripts/model-storage.ts setup",
+    "db:migrate": "node --conditions=react-server --import tsx scripts/model-storage.ts migrate",
+    "db:backup": "node --conditions=react-server --import tsx scripts/model-storage.ts backup",
+    "db:verify": "node --conditions=react-server --import tsx scripts/model-storage.ts verify",
+    "model-settings:import": "node --conditions=react-server --import tsx scripts/model-storage.ts import"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
@@ -17,16 +23,22 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "recharts": "^3.8.1",
+    "server-only": "^0.0.1",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
+    "@next/env": "^16.2.2",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^24.19.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.2",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=24.15.0 <25"
   }
 }

@@ -1,4 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { completeChat, type ChatMessage } from "@/lib/server/chat-completions-client";
+import { modelConfigurationService } from "@/lib/server/model-configurations";
+import { endpoint, readJson } from "@/lib/server/http";
+import { AppError } from "@/lib/server/errors";
+import { objectInput } from "@/lib/server/model-configurations/validation";
+
+export const runtime = "nodejs";
 
 const MODE_PROMPTS: Record<string, string> = {
   "risk-averse": `You are the Intellitrex Bot in Risk-Averse Mode. You focus on low-risk, long-term cryptocurrency investment strategies. Emphasize established cryptocurrencies with stable performance. Provide conservative trading analytics. Always remind users this is not financial advice.`,
@@ -7,50 +14,21 @@ const MODE_PROMPTS: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
-  try {
-    const { message, mode, history } = await req.json();
-
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({
-        response:
-          "AI advisor is not configured yet. Please set the OPENAI_API_KEY environment variable to enable the chatbot.",
-      });
+  return endpoint(async () => {
+    const input = objectInput(await readJson(req, 131072), ["message", "mode", "history"]);
+    if (typeof input.message !== "string" || !input.message.trim() || input.message.length > 8000) throw new AppError("INVALID_INPUT", "Enter a message of at most 8,000 characters.");
+    const mode = input.mode === undefined ? "active-trader" : input.mode;
+    if (typeof mode !== "string" || !Object.hasOwn(MODE_PROMPTS, mode)) throw new AppError("INVALID_INPUT", "Select a supported advisor mode.");
+    const history = input.history ?? [];
+    if (!Array.isArray(history) || history.length > 10) throw new AppError("INVALID_INPUT", "Conversation history must contain at most ten messages.");
+    const messages: ChatMessage[] = [{ role: "system", content: MODE_PROMPTS[mode] }];
+    for (const entry of history) {
+      const item = objectInput(entry, ["role", "content"]);
+      if ((item.role !== "user" && item.role !== "assistant") || typeof item.content !== "string" || !item.content.trim() || item.content.length > 8000) throw new AppError("INVALID_INPUT", "Conversation history contains an unsupported message.");
+      messages.push({ role: item.role, content: item.content });
     }
-
-    const systemPrompt =
-      MODE_PROMPTS[mode] || MODE_PROMPTS["active-trader"];
-
-    const messages = [
-      { role: "system", content: systemPrompt },
-      ...(history || []).slice(-10),
-      { role: "user", content: message },
-    ];
-
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages,
-        max_tokens: 1000,
-        temperature: 0.7,
-      }),
-    });
-
-    const data = await res.json();
-    const reply =
-      data.choices?.[0]?.message?.content ||
-      "I apologize, I could not generate a response. Please try again.";
-
-    return NextResponse.json({ response: reply });
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Chat service unavailable" },
-      { status: 500 }
-    );
-  }
+    messages.push({ role: "user", content: input.message });
+    const connection = await modelConfigurationService().connection();
+    return { response: await completeChat(connection, messages) };
+  });
 }

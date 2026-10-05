@@ -15,6 +15,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ModelSettings } from "@/components/admin/model-settings";
 
 function AdminLogin({ onLogin }: { onLogin: () => void }) {
   const { signInAdmin } = useAuth();
@@ -88,7 +89,7 @@ export default function AdminPage() {
   const [loggedIn, setLoggedIn] = useState(isAdmin);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
 
-  if (!loggedIn) return <AdminLogin onLogin={() => setLoggedIn(true)} />;
+  if (!loggedIn) return <div className="px-6"><ModelSettings /><AdminLogin onLogin={() => setLoggedIn(true)} /></div>;
 
   const users = getAllUsers();
   const totalUsers = users.length;
@@ -111,6 +112,7 @@ export default function AdminPage() {
         </div>
 
         {/* Stats */}
+        <ModelSettings />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             { icon: Users, label: "Total Users", value: totalUsers, color: "text-primary" },
