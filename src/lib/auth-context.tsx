@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useMemo, useSyncExternalStore, useCallback } from "react";
 
 export type UserTier = "free" | "premium";
 
@@ -119,6 +119,7 @@ function getAllUsersFromStorage(): User[] {
 function saveAllUsers(users: User[]) {
   if (typeof window === "undefined") return;
   localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+  notifyAuthChange();
 }
 
 function getCurrentUserId(): string | null {
@@ -130,6 +131,7 @@ function setCurrentUserId(id: string | null) {
   if (typeof window === "undefined") return;
   if (id) localStorage.setItem(CURRENT_USER_KEY, id);
   else localStorage.removeItem(CURRENT_USER_KEY);
+  notifyAuthChange();
 }
 
 function upsertUser(user: User) {
@@ -157,36 +159,45 @@ function createUser(name: string, email: string, provider: string): User {
   };
 }
 
+function notifyAuthChange() {
+  window.dispatchEvent(new Event("intellitrex-auth-change"));
+}
+
+function subscribeToAuth(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  window.addEventListener("intellitrex-auth-change", onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener("intellitrex-auth-change", onChange);
+  };
+}
+
+function getAuthSnapshot() {
+  const userId = getCurrentUserId();
+  return JSON.stringify({
+    user: getAllUsersFromStorage().find((storedUser) => storedUser.id === userId) ?? null,
+    isAdmin: sessionStorage.getItem("intellitrex-admin") === "true",
+  });
+}
+
+const SERVER_AUTH_SNAPSHOT = JSON.stringify({ user: null, isAdmin: false });
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const adminFlag = sessionStorage.getItem("intellitrex-admin");
-    if (adminFlag === "true") setIsAdmin(true);
-
-    const userId = getCurrentUserId();
-    if (userId) {
-      const users = getAllUsersFromStorage();
-      const found = users.find((u) => u.id === userId);
-      if (found) setUser(found);
-    }
-  }, []);
+  const snapshot = useSyncExternalStore(subscribeToAuth, getAuthSnapshot, () => SERVER_AUTH_SNAPSHOT);
+  const { user, isAdmin } = useMemo(
+    () => JSON.parse(snapshot) as { user: User | null; isAdmin: boolean },
+    [snapshot]
+  );
 
   const persistUser = useCallback((updated: User) => {
-    setUser(updated);
     upsertUser(updated);
     setCurrentUserId(updated.id);
   }, []);
 
   const updateUser = useCallback(
     (updater: (prev: User) => User) => {
-      setUser((prev) => {
-        if (!prev) return prev;
-        const updated = updater(prev);
-        upsertUser(updated);
-        return updated;
-      });
+      const currentUser = getAllUsersFromStorage().find((storedUser) => storedUser.id === getCurrentUserId());
+      if (currentUser) upsertUser(updater(currentUser));
     },
     []
   );
@@ -204,7 +215,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const users = getAllUsersFromStorage();
       const existing = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
       if (existing) {
-        setUser(existing);
         setCurrentUserId(existing.id);
         return true;
       }
@@ -218,18 +228,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInAdmin = useCallback((username: string, password: string): boolean => {
     if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-      setIsAdmin(true);
       sessionStorage.setItem("intellitrex-admin", "true");
+      notifyAuthChange();
       return true;
     }
     return false;
   }, []);
 
   const signOut = useCallback(() => {
-    setUser(null);
-    setIsAdmin(false);
     setCurrentUserId(null);
     sessionStorage.removeItem("intellitrex-admin");
+    notifyAuthChange();
   }, []);
 
   const incrementChatCount = useCallback(() => {
@@ -299,7 +308,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     const users = getAllUsersFromStorage().filter((u) => u.id !== user.id);
     saveAllUsers(users);
-    setUser(null);
     setCurrentUserId(null);
   }, [user]);
 

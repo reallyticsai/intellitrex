@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { SUPPORTED_COINS, MODELS } from "@/lib/constants";
 import { TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -143,56 +143,67 @@ export default function CurrencyPage() {
   const [showSMA, setShowSMA] = useState(false);
   const [showRSI, setShowRSI] = useState(false);
   const [showBollinger, setShowBollinger] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const priceRequestKey = `${selectedCoin.krakenPair}:${timeRange.interval}:${timeRange.limit}`;
+  const [loadedPriceKey, setLoadedPriceKey] = useState<string | null>(null);
+  const loading = loadedPriceKey !== priceRequestKey;
 
-  const fetchPrices = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `/api/prices?pair=${selectedCoin.krakenPair}&interval=${timeRange.interval}&limit=${timeRange.limit}`
-      );
-      const data = await res.json();
-      if (data.candles) {
-        const sliced = data.candles.slice(-timeRange.limit);
-        setCandles(sliced);
+  useEffect(() => {
+    const controller = new AbortController();
+    async function fetchPrices() {
+      try {
+        const res = await fetch(
+          `/api/prices?pair=${selectedCoin.krakenPair}&interval=${timeRange.interval}&limit=${timeRange.limit}`,
+          { signal: controller.signal }
+        );
+        const data = await res.json();
+        if (!controller.signal.aborted && data.candles) {
+          setCandles(data.candles.slice(-timeRange.limit));
+        }
+      } catch (e) {
+        if (!controller.signal.aborted) console.error("Failed to fetch prices", e);
+      } finally {
+        if (!controller.signal.aborted) setLoadedPriceKey(priceRequestKey);
       }
-    } catch (e) {
-      console.error("Failed to fetch prices", e);
     }
-    setLoading(false);
-  }, [selectedCoin, timeRange]);
+    void fetchPrices();
+    return () => controller.abort();
+  }, [selectedCoin.krakenPair, timeRange.interval, timeRange.limit, priceRequestKey]);
 
-  const fetchForecasts = useCallback(async () => {
-    try {
-      const res = await fetch(
-        `/api/forecasts?pair=${selectedCoin.pair}&model=${selectedModel}`
-      );
-      const data = await res.json();
-      setForecasts(data.forecasts || []);
-      setMetrics(data.metrics || null);
-    } catch (e) {
-      console.error("Failed to fetch forecasts", e);
+  useEffect(() => {
+    const controller = new AbortController();
+    async function fetchForecasts() {
+      try {
+        const res = await fetch(
+          `/api/forecasts?pair=${selectedCoin.pair}&model=${selectedModel}`,
+          { signal: controller.signal }
+        );
+        const data = await res.json();
+        if (!controller.signal.aborted) {
+          setForecasts(data.forecasts || []);
+          setMetrics(data.metrics || null);
+        }
+      } catch (e) {
+        if (!controller.signal.aborted) console.error("Failed to fetch forecasts", e);
+      }
     }
-  }, [selectedCoin, selectedModel]);
+    void fetchForecasts();
+    return () => controller.abort();
+  }, [selectedCoin.pair, selectedModel]);
 
-  const fetchFearGreedData = useCallback(async () => {
-    try {
-      const res = await fetch("/api/fear-greed");
-      const data = await res.json();
-      setFearGreed(data);
-    } catch (e) {
-      console.error("Failed to fetch fear & greed", e);
+  useEffect(() => {
+    const controller = new AbortController();
+    async function fetchFearGreedData() {
+      try {
+        const res = await fetch("/api/fear-greed", { signal: controller.signal });
+        const data = await res.json();
+        if (!controller.signal.aborted) setFearGreed(data);
+      } catch (e) {
+        if (!controller.signal.aborted) console.error("Failed to fetch fear & greed", e);
+      }
     }
+    void fetchFearGreedData();
+    return () => controller.abort();
   }, []);
-
-  useEffect(() => {
-    fetchPrices();
-    fetchForecasts();
-  }, [fetchPrices, fetchForecasts]);
-
-  useEffect(() => {
-    fetchFearGreedData();
-  }, [fetchFearGreedData]);
 
   const latestCandle = candles[candles.length - 1];
   const firstCandle = candles[0];

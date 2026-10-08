@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useSyncExternalStore } from "react";
 
 type Theme = "light" | "dark";
 
@@ -13,22 +13,30 @@ export function useTheme() {
   return useContext(ThemeContext);
 }
 
+function subscribeToTheme(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  window.addEventListener("intellitrex-theme-change", onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener("intellitrex-theme-change", onChange);
+  };
+}
+
+function getThemeSnapshot(): Theme {
+  return localStorage.getItem("intellitrex-theme") === "dark" ? "dark" : "light";
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light");
+  const theme = useSyncExternalStore(subscribeToTheme, getThemeSnapshot, () => "light" as Theme);
 
   useEffect(() => {
-    const saved = localStorage.getItem("intellitrex-theme") as Theme | null;
-    if (saved) {
-      setTheme(saved);
-      document.documentElement.classList.toggle("dark", saved === "dark");
-    }
-  }, []);
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
 
   const toggle = () => {
     const next = theme === "light" ? "dark" : "light";
-    setTheme(next);
     localStorage.setItem("intellitrex-theme", next);
-    document.documentElement.classList.toggle("dark", next === "dark");
+    window.dispatchEvent(new Event("intellitrex-theme-change"));
   };
 
   return (
