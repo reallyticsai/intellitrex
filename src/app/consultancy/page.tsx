@@ -46,35 +46,29 @@ export default function ConsultancyPage() {
 }
 
 function ConsultancyContent() {
+  const searchParams = useSearchParams();
+  const { loadChatSession } = useAuth();
+  const resumeSessionId = searchParams.get("session");
+  const session = resumeSessionId ? loadChatSession(resumeSessionId) : null;
+
+  return <ConsultancyChat key={session?.id ?? "new"} initialSession={session} />;
+}
+
+function ConsultancyChat({ initialSession }: { initialSession: ChatSession | null }) {
   const {
     isLoggedIn, isPremium, canChat, chatCount, chatLimit,
-    incrementChatCount, saveChatSession, loadChatSession, user,
+    incrementChatCount, saveChatSession, user,
   } = useAuth();
 
-  const searchParams = useSearchParams();
-  const resumeSessionId = searchParams.get("session");
-
-  const [mode, setMode] = useState<string>(CHATBOT_MODES[1].id);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [mode, setMode] = useState<string>(() => initialSession?.mode ?? CHATBOT_MODES[1].id);
+  const [messages, setMessages] = useState<Message[]>(() =>
+    initialSession?.messages.map((message) => ({ role: message.role, content: message.content })) ?? []
+  );
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [sessionId, setSessionId] = useState(() => "session-" + Date.now());
+  const [sessionId, setSessionId] = useState(() => initialSession?.id ?? "session-" + Date.now());
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [initialized, setInitialized] = useState(false);
-
-  // Load resumed session
-  useEffect(() => {
-    if (resumeSessionId && !initialized) {
-      const session = loadChatSession(resumeSessionId);
-      if (session) {
-        setSessionId(session.id);
-        setMode(session.mode);
-        setMessages(session.messages.map((m) => ({ role: m.role, content: m.content })));
-      }
-      setInitialized(true);
-    }
-  }, [resumeSessionId, loadChatSession, initialized]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

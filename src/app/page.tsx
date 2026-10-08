@@ -10,6 +10,8 @@ import {
   Bot,
   Wallet,
   ArrowRight,
+  Sparkles,
+  Check,
 } from "lucide-react";
 
 const FEATURES = [
@@ -68,69 +70,115 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen">
       {/* Hero */}
-      <section className="relative overflow-hidden py-24 px-6">
+      <section className="relative overflow-hidden px-4 pt-8 pb-10 sm:px-6 sm:pt-12 sm:pb-12">
         <div className="max-w-7xl mx-auto">
-          <div className="bg-card rounded-3xl p-12 flex flex-col lg:flex-row items-center gap-12">
-            <div className="w-full lg:w-5/12 aspect-[3/4] rounded-2xl bg-gradient-to-br from-primary/80 via-primary/60 to-primary/40 relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-white/20" />
-              <div className="absolute top-6 left-6 bg-card/90 backdrop-blur rounded-full px-4 py-2 flex items-center gap-2">
-                <div className="w-6 h-6 bg-accent rounded-md flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">*</span>
-                </div>
-                <span className="text-sm font-medium text-foreground">Intellitrex</span>
-              </div>
-            </div>
-
-            <div className="flex-1 text-center lg:text-left">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-tight">
-                THE{" "}
-                <span className="inline-flex items-center justify-center w-12 h-12 bg-accent rounded-lg align-middle">
-                  <TrendingUp className="w-6 h-6 text-white" />
-                </span>{" "}
-                PATH TO FINANCIAL EMPOWERMENT
-              </h1>
-              <p className="mt-6 text-lg text-muted-foreground max-w-xl">
-                Empower your trades with real-time insights and data-driven decisions.
-                Maximize opportunities and navigate markets confidently with intelligent
-                trading analysis.
+          <div className="grid items-center gap-10 rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-10 lg:grid-cols-2 lg:gap-12 lg:p-12">
+            <div className="min-w-0">
+              <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary sm:text-sm">
+                <Sparkles className="size-4" aria-hidden="true" />
+                AI-powered crypto insights
               </p>
-              <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+              <h1 className="text-4xl font-bold leading-[1.08] tracking-tight text-foreground sm:text-5xl xl:text-6xl">
+                A clearer view.<br />
+                <span className="text-primary">A smarter trade.</span>
+              </h1>
+              <p className="mt-5 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
+                Bring live market data, AI forecasts, and technical analysis together.
+                Understand the market before your next move.
+              </p>
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href="/currency"
-                  className="inline-flex items-center justify-center px-8 py-3.5 bg-foreground text-background rounded-full font-medium hover:opacity-90 transition-opacity"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
                 >
-                  Get Started
+                  Explore Markets <ArrowRight className="size-4" aria-hidden="true" />
                 </Link>
                 <Link
                   href="/consultancy"
-                  className="inline-flex items-center justify-center px-8 py-3.5 border border-border rounded-full font-medium text-foreground hover:bg-muted transition-colors"
+                  className="inline-flex min-h-12 items-center justify-center rounded-xl border border-border px-6 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
                 >
                   Talk to AI Advisor
                 </Link>
               </div>
+              <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5"><Check className="size-3.5 text-primary" aria-hidden="true" /> Live market data</span>
+                <span className="inline-flex items-center gap-1.5"><Check className="size-3.5 text-primary" aria-hidden="true" /> 4 forecast models</span>
+                <span className="inline-flex items-center gap-1.5"><Check className="size-3.5 text-primary" aria-hidden="true" /> 7-day outlook</span>
+              </div>
             </div>
+
+            <figure className="min-w-0 rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/10 via-muted/60 to-accent/10 p-4 sm:p-6">
+              <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
+                <div className="flex items-center justify-between gap-3 border-b border-border pb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-sm font-bold text-primary">B</span>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Bitcoin</p>
+                      <p className="text-xs text-muted-foreground">BTC / USD</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">Preview</span>
+                </div>
+                <div className="mt-5 flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium text-foreground">Market overview</p>
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-primary"><TrendingUp className="size-3.5" aria-hidden="true" /> Price + forecast</span>
+                </div>
+                <svg viewBox="0 0 420 180" className="mt-4 w-full text-primary" role="img" aria-labelledby="market-preview-title">
+                  <title id="market-preview-title">Illustrative price chart with a dashed forecast. This is not live market data.</title>
+                  <defs>
+                    <linearGradient id="market-preview-fill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="currentColor" stopOpacity="0.18" />
+                      <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  {[35, 80, 125, 170].map((y) => <line key={y} x1="0" y1={y} x2="420" y2={y} stroke="currentColor" strokeOpacity="0.1" />)}
+                  <path d="M0 140 L25 125 L50 132 L75 105 L100 117 L125 90 L150 97 L175 67 L200 82 L225 58 L250 66 L275 40 L290 48 L290 180 L0 180 Z" fill="url(#market-preview-fill)" />
+                  <path d="M0 140 L25 125 L50 132 L75 105 L100 117 L125 90 L150 97 L175 67 L200 82 L225 58 L250 66 L275 40 L290 48" fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+                  <line x1="290" y1="10" x2="290" y2="170" stroke="currentColor" strokeOpacity="0.25" strokeDasharray="4 5" />
+                  <path d="M290 48 L315 40 L340 47 L365 25 L390 31 L420 15" fill="none" stroke="var(--accent)" strokeWidth="3" strokeDasharray="6 6" strokeLinecap="round" />
+                  <circle cx="290" cy="48" r="5" fill="currentColor" stroke="var(--card)" strokeWidth="3" />
+                </svg>
+                <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Price history</span>
+                  <span>7-day forecast</span>
+                </div>
+                <div className="mt-5 grid grid-cols-2 gap-3 border-t border-border pt-4">
+                  <div className="rounded-lg bg-muted/70 p-3">
+                    <Brain className="mb-2 size-4 text-primary" aria-hidden="true" />
+                    <p className="text-xs font-semibold text-foreground">AI forecasts</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Multiple model perspectives</p>
+                  </div>
+                  <div className="rounded-lg bg-muted/70 p-3">
+                    <BarChart3 className="mb-2 size-4 text-primary" aria-hidden="true" />
+                    <p className="text-xs font-semibold text-foreground">Technical indicators</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Context behind each move</p>
+                  </div>
+                </div>
+              </div>
+              <figcaption className="mt-3 text-center text-xs text-muted-foreground">Illustrative preview · Not live market data</figcaption>
+            </figure>
           </div>
         </div>
       </section>
 
       {/* Supported Coins */}
-      <section className="py-12 px-6">
+      <section className="px-4 pb-10 sm:px-6 sm:pb-12">
         <div className="max-w-7xl mx-auto">
           <p className="text-center text-sm text-muted-foreground mb-6 uppercase tracking-wider">
             Supported Cryptocurrencies
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5 sm:gap-3 lg:grid-cols-10">
             {COINS.map((coin) => (
               <div
                 key={coin.symbol}
-                className="bg-card rounded-xl px-5 py-3 flex items-center gap-2 border border-border"
+                className="flex min-w-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-3"
               >
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
                   <span className="text-xs font-bold text-primary">{coin.symbol[0]}</span>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground">{coin.symbol}</p>
-                  <p className="text-xs text-muted-foreground">{coin.name}</p>
+                  <p className="text-[11px] text-muted-foreground">{coin.name}</p>
                 </div>
               </div>
             ))}
@@ -139,9 +187,9 @@ export default function LandingPage() {
       </section>
 
       {/* Features Grid */}
-      <section className="py-20 px-6">
+      <section className="px-4 py-12 sm:px-6 sm:py-16">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="mx-auto mb-8 max-w-2xl text-center sm:mb-10">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground">
               Everything You Need for Informed Trading
             </h2>
@@ -151,13 +199,13 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((feature) => {
               const Icon = feature.icon;
               return (
                 <div
                   key={feature.title}
-                  className="bg-card rounded-2xl p-8 border border-border hover:border-primary/30 transition-colors"
+                  className="rounded-2xl border border-border bg-card p-6 transition-colors hover:border-primary/30"
                 >
                   <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
                     <Icon className="w-6 h-6 text-primary" />
@@ -176,9 +224,9 @@ export default function LandingPage() {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 px-6 bg-card/50">
+      <section className="bg-card/50 px-4 py-12 sm:px-6 sm:py-16">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground text-center mb-16">
+          <h2 className="mb-10 text-center text-3xl font-bold text-foreground md:text-4xl">
             How It Works
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
@@ -212,7 +260,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-6">
+      <section className="px-4 py-12 sm:px-6 sm:py-16">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
             Ready to Trade Smarter?
@@ -222,7 +270,7 @@ export default function LandingPage() {
           </p>
           <Link
             href="/currency"
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary text-primary-foreground rounded-full font-medium hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary text-primary-foreground rounded-full font-medium hover:opacity-90 transition-opacity focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
           >
             Launch Dashboard <ArrowRight className="w-4 h-4" />
           </Link>
@@ -245,7 +293,7 @@ export default function LandingPage() {
             Built by{" "}
             <a
               href="https://github.com/reallyticsai"
-              className="text-primary hover:underline"
+              className="text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
               target="_blank"
               rel="noopener noreferrer"
             >
